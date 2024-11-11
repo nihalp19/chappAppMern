@@ -47,6 +47,7 @@ async function register(req, res) {
 
 async function login(req, res) {
     const { email, password } = req.body
+    console.log("email :", email);
 
     try {
         if (!email) {
@@ -127,7 +128,6 @@ async function forgetPassword(req, res) {
             throw new Error("Enter The email")
         }
 
-
         const user = await USER.findOne({ email })
 
         if (!user) {
@@ -135,11 +135,11 @@ async function forgetPassword(req, res) {
         }
 
         const resetPasswordToken = crypto.randomBytes(20).toString("hex")
-
+        const resetTokenUrl = `http://localhost:5174/reset-password/${resetPasswordToken}`
         user.resetPasswordToken = resetPasswordToken
         user.resetPasswordExpiresAt = Date.now() + 24 * 60 * 60 * 1000
 
-        sendPasswordResetEmail(user.email, resetPasswordToken)
+        sendPasswordResetEmail(user.email, resetTokenUrl)
 
         await user.save()
 
@@ -157,7 +157,7 @@ async function forgetPassword(req, res) {
 }
 
 async function resetPassword(req, res) {
-    const {email,password } = req.body
+    const { email, password } = req.body
 
     try {
         if (!email) {
@@ -193,11 +193,36 @@ async function resetPassword(req, res) {
         return res.status(400).json({ success: false, message: err.message })
     }
 }
+async function fetchData(req, res) {
+
+    const { id } = req.body
+
+    try {
+        if (!id) {
+            throw new Error("Enter The Urlid")
+        }
+
+        const user = await USER.findOne({ resetPasswordToken: id })
+
+        if (!user) {
+            return res.status(400).json({ success: false, message: "User not found" })
+        }
+
+        return res.status(200).json({
+            success: true, resetTokenid: user.resetPasswordToken, message: "fetchData successfully"
+        })
+
+    } catch (err) {
+        console.log("err while fetchData", err);
+        return res.status(400).json({ success: false, message: err.message })
+    }
+}
 
 module.exports = {
     register,
     login,
     verifyUser,
     forgetPassword,
-    resetPassword
+    resetPassword,
+    fetchData
 }
